@@ -14,7 +14,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
         public int YSize { get; private set; }
 
 
-        private PhysicalPixel[] _physicalPixels;
+        public PhysicalPixel[] PhysicalPixels;
 
         public ColorMatrix(int xsize, int ysize)
         {
@@ -27,7 +27,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
 
             try
             {
-                _physicalPixels[actualIndex] = pixel;
+                PhysicalPixels[actualIndex] = pixel;
             }
             catch
             {
@@ -41,7 +41,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
 
             try
             {
-                return _physicalPixels[actualIndex];
+                return PhysicalPixels[actualIndex];
             }
             catch
             {
@@ -81,18 +81,18 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
                     int oldIndex = y * XSize + x;
                     int newIndex = y * newX + x;
 
-                    newPixels[newIndex] = _physicalPixels[oldIndex];
+                    newPixels[newIndex] = PhysicalPixels[oldIndex];
                 }
             }
 
             XSize = newX;
             YSize = newY;
-            _physicalPixels = newPixels;
+            PhysicalPixels = newPixels;
         }
 
         public void ClearToDefault()
         {
-            foreach (PhysicalPixel pixel in _physicalPixels)
+            foreach (PhysicalPixel pixel in PhysicalPixels)
             {
                 pixel.ShowDefault = true;
             }
@@ -118,7 +118,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             {
                 for (int x = 0; x < XSize; x++)
                 {
-                    PhysicalPixel currentPixel = _physicalPixels[(y * XSize) + x];
+                    PhysicalPixel currentPixel = PhysicalPixels[(y * XSize) + x];
 
                     // Emit foreground color ANSI code ONLY if it changed
                     if (firstPixel || currentPixel.ForegroundColor != lastForeground)

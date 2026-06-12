@@ -9,15 +9,27 @@ namespace ModernPainter.Painter.Writer
 {
     internal interface IWriter
     {
+        // Configuration
+        public void SetExpansionPixelColor(Color c);
+
+        
+        
         /// <summary>
         /// Changes the pixel at the (virtual) point to be a certain color and character
         /// </summary>
         /// <param name="point">virtual point of the pixel</param>
         /// <param name="color">color to set the pixel to</param>
         /// <param name="character">character to set the pixel to</param>
-        public void ChangePixel(Point2D point, PhysicalColor color, char? character = null);
+        internal void ChangePixel(Point2D point, Color color, char? character = null);
 
         /// <summary>
+        /// Runs a query to it's best ability
+        /// </summary>
+        /// <param name="query"></param>
+        public void RunQuery(IChangePixelQuery query);
+
+
+        /// <summary> Data Scientist
         /// Get the color of the pixel at (virtual) point
         /// </summary>
         /// <param name="point">virtual point of the pixel</param>

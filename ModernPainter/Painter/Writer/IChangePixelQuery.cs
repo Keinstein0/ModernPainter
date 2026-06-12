@@ -9,6 +9,6 @@ namespace ModernPainter.Painter.Writer
 {
     internal interface IChangePixelQuery
     {
-        public void RunQuery(PhysicalPixel[] pixelMatrix);
+        public void RunDefault(IWriter writer);
     }
 }
