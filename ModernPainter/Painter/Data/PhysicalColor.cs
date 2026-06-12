@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Painter.Data
 {
-    internal class PhysicalColor
+    internal struct PhysicalColor
     {
         private int _red;
         private int _green;
@@ -26,6 +26,13 @@ namespace ModernPainter.Painter.Data
             Red = 0;
             Green = 0;
             Blue = 0;
+        }
+
+        public PhysicalColor(Color color)
+        {
+            Red = color.Red;
+            Green = color.Green;
+            Blue = color.Blue;
         }
 
         public PhysicalColor(string hexCode)

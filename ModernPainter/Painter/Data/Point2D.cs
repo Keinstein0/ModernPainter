@@ -10,5 +10,7 @@ namespace ModernPainter.Painter.Data
     {
         public int X;
         public int Y;
+
+        public Point2D(int x, int y) {  X = x; Y = y; }
     }
 }

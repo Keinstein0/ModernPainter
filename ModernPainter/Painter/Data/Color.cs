@@ -35,7 +35,17 @@ namespace ModernPainter.Painter.Data
             Red = int.Parse(cleanHex.Substring(0, 2), NumberStyles.HexNumber);
             Green = int.Parse(cleanHex.Substring(2, 2), NumberStyles.HexNumber);
             Blue = int.Parse(cleanHex.Substring(4, 2), NumberStyles.HexNumber);
-            Alpha = int.Parse(cleanHex.Substring(6,2), NumberStyles.HexNumber);
+
+
+            if (cleanHex.Length == 8)
+            {
+                Alpha = int.Parse(cleanHex.Substring(6,2), NumberStyles.HexNumber);
+            }
+            else
+            {
+                Alpha = 255;
+            }
+
         }
 
         public int Red
@@ -58,8 +68,8 @@ namespace ModernPainter.Painter.Data
 
         public int Alpha
         {
-            get => _blue;
-            set => _blue = Clamp(value);
+            get => _alpha;
+            set => _alpha = Clamp(value);
         }
 
         public string Hex

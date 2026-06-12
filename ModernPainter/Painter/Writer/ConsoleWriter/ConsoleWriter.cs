@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -44,7 +45,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
 
             var pixel = _matrix.GetPixel(x, actualY);
             
-            if (y % 2 == 0)
+            if (y % 2 != 0)
             {
                 pixel.ForegroundColor.MergeColor(color);
             }
@@ -57,11 +58,24 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             {
                 pixel.Character = (char)character;
             }
+
+            _matrix.UpdatePhysicalPixel(pixel, x, actualY);
         }
 
         void IWriter.RunQuery(IChangePixelQuery query)
         {
-            query.RunDefault(this);
+            MethodInfo optimizedMethod = query.GetType().GetMethods()
+            .FirstOrDefault(m => m.GetCustomAttributes<QueryForAttribute>()
+                .Any(attr => attr.DatabaseType.IsAssignableFrom(this.GetType())));
+
+            if (optimizedMethod == null)
+            {
+                query.RunDefault(this);
+            }
+            else
+            {
+                optimizedMethod.Invoke(query, new[] { _matrix });
+            }
         }
 
 
@@ -75,7 +89,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
 
             var pixel = _matrix.GetPixel(x, actualY);
 
-            if (y % 2 == 0)
+            if (y % 2 != 0)
             {
                 return pixel.ForegroundColor;
             }

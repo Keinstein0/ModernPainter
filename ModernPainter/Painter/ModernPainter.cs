@@ -24,11 +24,11 @@ namespace ModernPainter.Painter
             _writer.RunQuery(query);
         }
 
-        public void Clear()
+        public void Clear(Color? c = null)
         {
-
+            IChangePixelQuery query = new ClearMatrixQuery(c);
+            _writer.RunQuery(query);
         }
-
 
         public void Update()
         {

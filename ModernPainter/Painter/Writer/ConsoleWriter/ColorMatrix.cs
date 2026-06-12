@@ -57,7 +57,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             {
                 if (extensionTemplate != null)
                 {
-                    newPixels[i] = extensionTemplate.Clone();
+                    newPixels[i] = (PhysicalPixel)extensionTemplate;
                 }
                 else
                 {
@@ -90,13 +90,6 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             PhysicalPixels = newPixels;
         }
 
-        public void ClearToDefault()
-        {
-            foreach (PhysicalPixel pixel in PhysicalPixels)
-            {
-                pixel.ShowDefault = true;
-            }
-        }
 
         private byte[] _exportBuffer = new byte[1024*768];
 
@@ -121,14 +114,14 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
                     PhysicalPixel currentPixel = PhysicalPixels[(y * XSize) + x];
 
                     // Emit foreground color ANSI code ONLY if it changed
-                    if (firstPixel || currentPixel.ForegroundColor != lastForeground)
+                    if (firstPixel || !currentPixel.ForegroundColor.Equals(lastForeground))
                     {
                         writeIndex += AppendAnsiColor(_exportBuffer, writeIndex, isBackground: false, currentPixel.ForegroundColor);
                         lastForeground = currentPixel.ForegroundColor;
                     }
 
                     // Emit background color ANSI code ONLY if it changed
-                    if (firstPixel || currentPixel.BackgroundColor != lastBackground)
+                    if (firstPixel || !currentPixel.BackgroundColor.Equals(lastBackground))
                     {
                         writeIndex += AppendAnsiColor(_exportBuffer, writeIndex, isBackground: true, currentPixel.BackgroundColor);
                         lastBackground = currentPixel.BackgroundColor;
