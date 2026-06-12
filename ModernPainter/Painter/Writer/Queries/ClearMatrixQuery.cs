@@ -45,7 +45,7 @@ namespace ModernPainter.Painter.Writer.Queries
             p.BackgroundColor = new PhysicalColor(_color);
             p.ForegroundColor = new PhysicalColor(_color);
             
-            Span<PhysicalPixel> rowSpan = matrix.PhysicalPixels.AsSpan(0, matrix.PhysicalPixels.Length-10);
+            Span<PhysicalPixel> rowSpan = matrix.PhysicalPixels.AsSpan(0, matrix.PhysicalPixels.Length);
             rowSpan.Fill(p);
         }
     }

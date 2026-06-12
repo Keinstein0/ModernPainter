@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Painter.Data
 {
-    public class Point2D
+    public struct Point2D
     {
         public int X;
         public int Y;

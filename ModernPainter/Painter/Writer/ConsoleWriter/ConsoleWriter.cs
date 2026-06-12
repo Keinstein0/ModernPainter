@@ -43,6 +43,14 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
 
             int actualY = (int)Math.Floor((double)y / 2);
 
+            if (x >= _width || actualY >= _height) // catch out of range
+            {
+                return;
+            }
+
+
+
+
             var pixel = _matrix.GetPixel(x, actualY);
             
             if (y % 2 != 0)
