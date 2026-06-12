@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ModernPainter")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d5be39481ab8e6b9120e3c599976c802ae1a2a73")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a61611d5d926cbe6b1edd2bbeb16c63a0c3f1a9d")]
 [assembly: System.Reflection.AssemblyProductAttribute("ModernPainter")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ModernPainter")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

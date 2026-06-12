@@ -6,11 +6,25 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Painter.Data
 {
-    internal class Rectangle2D
+    public class Rectangle2D
     {
+        /// <summary>
+        /// Start position of the rectangle on the X Axis
+        /// </summary>
         public int XPosition;
+        /// <summary>
+        /// Start position of the rectangle on the Y Axis
+        /// </summary>
         public int YPosition;
+        /// <summary>
+        /// Width of the rectangle
+        /// </summary>
         public int XSize;
+        /// <summary>
+        /// Height of the rectangle
+        /// </summary>
         public int YSize;
+
+
     }
 }

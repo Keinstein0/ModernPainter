@@ -9,10 +9,37 @@ namespace ModernPainter.Painter.Writer
 {
     internal interface IWriter
     {
-        public void ChangePixel(Point2D point, PhysicalColor color);
+        /// <summary>
+        /// Changes the pixel at the (virtual) point to be a certain color and character
+        /// </summary>
+        /// <param name="point">virtual point of the pixel</param>
+        /// <param name="color">color to set the pixel to</param>
+        /// <param name="character">character to set the pixel to</param>
+        public void ChangePixel(Point2D point, PhysicalColor color, char? character = null);
+
+        /// <summary>
+        /// Get the color of the pixel at (virtual) point
+        /// </summary>
+        /// <param name="point">virtual point of the pixel</param>
+        /// <returns></returns>
         public PhysicalColor GetPixel(Point2D point);
 
+        /// <summary>
+        /// Get the character of the pixel at (virtual) point
+        /// </summary>
+        /// <param name="point">virtual point of the pixel</param>
+        /// <returns></returns>
+        public char? GetChar(Point2D point);
+
+        /// <summary>
+        /// Get the size of the current window in virtual pixels
+        /// </summary>
+        /// <returns></returns>
         public Rectangle2D GetSize();
+
+        /// <summary>
+        /// Update the current content of the screen to the buffer
+        /// </summary>
         public void RenderFrame();
 
 
