@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Painter.Data
 {
-    public struct Point2D
+    public struct Vector2D
     {
         public int X;
         public int Y;
 
-        public Point2D(int x, int y) {  X = x; Y = y; }
+        public Vector2D(int x, int y) {  X = x; Y = y; }
     }
 }

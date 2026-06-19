@@ -29,11 +29,11 @@ namespace ModernPainter.Painter.Writer.Queries
         {
             var size = writer.GetSize();
 
-            for (int x = 0; x < size.XSize; x++)
+            for (int x = 0; x < size.Width; x++)
             {
-                for (int y = 0; y < size.YSize; y++)
+                for (int y = 0; y < size.Height; y++)
                 {
-                    writer.ChangePixel(new Point2D(x, y), _color, PhysicalPixel.PIXEL);
+                    writer.ChangePixel(new Vector2D(x, y), _color, PhysicalPixel.PIXEL);
                 }
             }
         }

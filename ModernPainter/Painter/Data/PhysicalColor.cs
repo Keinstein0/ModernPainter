@@ -52,12 +52,12 @@ namespace ModernPainter.Painter.Data
 
         public void MergeColor(Color color)
         {
-            float alpha = color.Alpha / 255f;
-            float reverseAlpha = 1f - alpha;
+            int alpha = color.Alpha;
+            int reverseAlpha = 255 - alpha;
 
-            Red = (int)((color.Red * alpha) + (Red * reverseAlpha));
-            Green = (int)((color.Green * alpha) + (Green * reverseAlpha));
-            Blue = (int)((color.Blue * alpha) + (Blue * reverseAlpha));
+            Red = ((color.Red * alpha) + (Red * reverseAlpha)) >> 8;
+            Green = ((color.Green * alpha) + (Green * reverseAlpha)) >> 8;
+            Blue = ((color.Blue * alpha) + (Blue * reverseAlpha)) >> 8;
         }
 
         public int Red

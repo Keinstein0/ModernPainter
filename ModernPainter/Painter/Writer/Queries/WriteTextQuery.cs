@@ -11,11 +11,11 @@ namespace ModernPainter.Painter.Writer.Queries
     internal class WriteTextQuery : IChangePixelQuery
     {
         string _text;
-        Point2D _point;
+        Vector2D _point;
         Color _colorForeground;
         Color _colorBackground;
         
-        public WriteTextQuery(string text, Point2D point, Color foreground, Color background)
+        public WriteTextQuery(string text, Vector2D point, Color foreground, Color background)
         {
             _text = text;
             _point = point;
@@ -30,7 +30,7 @@ namespace ModernPainter.Painter.Writer.Queries
             for (int i = 0; i < _text.Length; i++)
             {
                 char c = _text[i];
-                Point2D charpoint = _point;
+                Vector2D charpoint = _point;
 
                 charpoint.X += i;
 

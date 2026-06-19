@@ -27,13 +27,25 @@ namespace ModernPainter.Painter
             _writer = output;
         }
 
-        public void ChangePixel(Point2D point, Color color)
+        public void ChangePixel(Vector2D point, Color color)
         {
             IChangePixelQuery query = new ChangePixelQuery(point, color);
             _writer.RunQuery(query);
         }
 
-        public void WriteText(Point2D point, string text, Color? foregroundColor = null, Color? backgroundColor = null)
+        public void FillRectangle(Rectangle2D pos, Color color)
+        {
+            IChangePixelQuery query = new FillRectangleQuery(pos, color);
+            _writer.RunQuery(query);
+        }
+
+        public void BlitImage(ModernImage img, Rectangle2D destinationRectangle, Rectangle2D? sourceRectangle = null)
+        {
+            IChangePixelQuery query = new BlitImageQuery(img, destinationRectangle, sourceRectangle);
+            _writer.RunQuery(query);
+        }
+
+        public void WriteText(Vector2D point, string text, Color? foregroundColor = null, Color? backgroundColor = null)
         {
             foregroundColor = foregroundColor == null ? new Color("#ffffff") : foregroundColor;
             backgroundColor = backgroundColor == null ? new Color("#00000000") : backgroundColor;
@@ -61,6 +73,11 @@ namespace ModernPainter.Painter
                 _frameCount = 0;
                 _lastFpsUpdate = DateTime.Now;
             }
+        }
+
+        public Rectangle2D GetFrame()
+        {
+            return _writer.GetSize();
         }
 
         

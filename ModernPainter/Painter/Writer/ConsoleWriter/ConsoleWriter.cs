@@ -36,14 +36,14 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
         }
 
         // Setters
-        public void ChangePixel(Point2D point, Color color, char? character = null) // ONLY he can do conversion (and the individual queries)
+        public void ChangePixel(Vector2D point, Color color, char? character = null) // ONLY he can do conversion (and the individual queries)
         {
             int x = point.X;
             int y = point.Y;
 
             int actualY = (int)Math.Floor((double)y / 2);
 
-            if (x >= _width || actualY >= _height) // catch out of range
+            if (x >= _width || actualY >= _height || x < 0 || y < 0) // catch out of range
             {
                 return;
             }
@@ -82,13 +82,18 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             }
             else
             {
-                optimizedMethod.Invoke(query, new[] { _matrix });
+                object a = optimizedMethod.Invoke(query, new[] { _matrix });
+
+                if (a is false) // if function reports it can't handle -> default
+                {
+                    query.RunDefault(this);
+                }
             }
         }
 
 
         // Getters
-        public PhysicalColor GetPixel(Point2D point)
+        public PhysicalColor GetPixel(Vector2D point)
         {
             int x = point.X;
             int y = point.Y;
@@ -107,7 +112,7 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
             }
         }
 
-        public char? GetChar(Point2D point)
+        public char? GetChar(Vector2D point)
         {
             int x = point.X;
             int y = point.Y;
@@ -123,11 +128,11 @@ namespace ModernPainter.Painter.Writer.ConsoleWriter
         {
             return new Rectangle2D()
             {
-                XPosition = 0,
-                YPosition = 0,
+                X = 0,
+                Y = 0,
 
-                XSize = _virtualWidth,
-                YSize = _virtualHeight
+                Width = _virtualWidth,
+                Height = _virtualHeight
             };
         }
 

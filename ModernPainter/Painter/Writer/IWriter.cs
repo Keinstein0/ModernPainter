@@ -20,7 +20,7 @@ namespace ModernPainter.Painter.Writer
         /// <param name="point">virtual point of the pixel</param>
         /// <param name="color">color to set the pixel to</param>
         /// <param name="character">character to set the pixel to</param>
-        internal void ChangePixel(Point2D point, Color color, char? character = null);
+        internal void ChangePixel(Vector2D point, Color color, char? character = null);
 
         /// <summary>
         /// Runs a query to it's best ability
@@ -34,14 +34,14 @@ namespace ModernPainter.Painter.Writer
         /// </summary>
         /// <param name="point">virtual point of the pixel</param>
         /// <returns></returns>
-        public PhysicalColor GetPixel(Point2D point);
+        public PhysicalColor GetPixel(Vector2D point);
 
         /// <summary>
         /// Get the character of the pixel at (virtual) point
         /// </summary>
         /// <param name="point">virtual point of the pixel</param>
         /// <returns></returns>
-        public char? GetChar(Point2D point);
+        public char? GetChar(Vector2D point);
 
         /// <summary>
         /// Get the size of the current window in virtual pixels

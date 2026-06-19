@@ -9,10 +9,10 @@ namespace ModernPainter.Painter.Writer.Queries
 {
     internal class ChangePixelQuery : IChangePixelQuery
     {
-        private Point2D _point; // virtual point
+        private Vector2D _point; // virtual point
         private Color _color;
 
-        public ChangePixelQuery(Point2D pt, Color color)
+        public ChangePixelQuery(Vector2D pt, Color color)
         {
             _point = pt;
             _color = color;

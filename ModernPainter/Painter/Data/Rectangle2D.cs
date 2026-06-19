@@ -6,25 +6,38 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Painter.Data
 {
-    public class Rectangle2D
+    public struct Rectangle2D
     {
         /// <summary>
         /// Start position of the rectangle on the X Axis
         /// </summary>
-        public int XPosition;
+        public int X;
         /// <summary>
         /// Start position of the rectangle on the Y Axis
         /// </summary>
-        public int YPosition;
+        public int Y;
         /// <summary>
         /// Width of the rectangle
         /// </summary>
-        public int XSize;
+        public int Width;
         /// <summary>
         /// Height of the rectangle
         /// </summary>
-        public int YSize;
+        public int Height;
 
+        public int XMax { get { return X + Width; } } 
+        public int YMax { get { return Y + Height; } }
 
+        public Rectangle2D(int xPosition, int yPosition, int xSize, int ySize)
+        {
+            X = xPosition;
+            Y = yPosition;
+            Width = xSize;
+            Height = ySize;
+        }
+        public Rectangle2D() { }
     }
+
+
 }
+
