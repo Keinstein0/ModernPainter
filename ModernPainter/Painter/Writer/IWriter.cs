@@ -10,6 +10,10 @@ namespace ModernPainter.Painter.Writer
     internal interface IWriter
     {
         // Configuration
+        /// <summary>
+        /// Sets the default color for if the screen is expanded
+        /// </summary>
+        /// <param name="c"></param>
         public void SetExpansionPixelColor(Color c);
 
         
@@ -53,9 +57,5 @@ namespace ModernPainter.Painter.Writer
         /// Update the current content of the screen to the buffer
         /// </summary>
         public void RenderFrame();
-
-
-
-
     }
 }
