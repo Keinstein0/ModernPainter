@@ -2,9 +2,14 @@
 using SixLabors.ImageSharp.PixelFormats;
 using System;*/
 
-namespace ModernPainter.Painter.Data
+
+/*using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using System;*/
+
+namespace ModernPainter.Core.Painter.Data
 {
-    internal class ModernImage
+    public class ModernImage
     {
 
         InternalImage _original;

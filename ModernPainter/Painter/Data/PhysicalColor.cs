@@ -6,9 +6,9 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ModernPainter.Painter.Data
+namespace ModernPainter.Core.Painter.Data
 {
-    internal struct PhysicalColor
+    public struct PhysicalColor
     {
         private int _red;
         private int _green;
@@ -55,9 +55,9 @@ namespace ModernPainter.Painter.Data
             int alpha = color.Alpha;
             int reverseAlpha = 255 - alpha;
 
-            Red = ((color.Red * alpha) + (Red * reverseAlpha)) >> 8;
-            Green = ((color.Green * alpha) + (Green * reverseAlpha)) >> 8;
-            Blue = ((color.Blue * alpha) + (Blue * reverseAlpha)) >> 8;
+            Red = color.Red * alpha + Red * reverseAlpha >> 8;
+            Green = color.Green * alpha + Green * reverseAlpha >> 8;
+            Blue = color.Blue * alpha + Blue * reverseAlpha >> 8;
         }
 
         public int Red

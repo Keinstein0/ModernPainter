@@ -40,9 +40,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.csproj",
-      "projectName": "ModernPainter",
-      "projectPath": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.csproj",
+      "projectUniqueName": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.Core.csproj",
+      "projectName": "ModernPainter.Core",
+      "projectPath": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.Core.csproj",
       "packagesPath": "C:\\Users\\alex\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\obj\\",
       "projectStyle": "PackageReference",
@@ -102,10 +102,6 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.22, 8.0.22]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
             "version": "[8.0.22, 8.0.22]"
           },
           {

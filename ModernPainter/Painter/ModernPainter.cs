@@ -1,15 +1,16 @@
-﻿using ModernPainter.Painter.Data;
-using ModernPainter.Painter.Writer;
-using ModernPainter.Painter.Writer.Queries;
+﻿using ModernPainter.Core.Painter.Data;
+using ModernPainter.Core.Painter.Writer;
+using ModernPainter.Core.Painter.Writer.DefaultQueries;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ModernPainter.Painter
+namespace ModernPainter.Core.Painter
 {
-    internal class ModernPainter
+    public class ModernPainter
     {
         private IWriter _writer;
 
@@ -30,19 +31,19 @@ namespace ModernPainter.Painter
         public void ChangePixel(Vector2D point, Color color)
         {
             IChangePixelQuery query = new ChangePixelQuery(point, color);
-            _writer.RunQuery(query);
+            RunQuery(query);
         }
 
         public void FillRectangle(Rectangle2D pos, Color color)
         {
             IChangePixelQuery query = new FillRectangleQuery(pos, color);
-            _writer.RunQuery(query);
+            RunQuery(query);
         }
 
         public void BlitImage(ModernImage img, Rectangle2D destinationRectangle, Rectangle2D? sourceRectangle = null)
         {
             IChangePixelQuery query = new BlitImageQuery(img, destinationRectangle, sourceRectangle);
-            _writer.RunQuery(query);
+            RunQuery(query);
         }
 
         public void WriteText(Vector2D point, string text, Color? foregroundColor = null, Color? backgroundColor = null)
@@ -51,13 +52,13 @@ namespace ModernPainter.Painter
             backgroundColor = backgroundColor == null ? new Color("#00000000") : backgroundColor;
 
             IChangePixelQuery query = new WriteTextQuery(text, point, foregroundColor, backgroundColor);
-            _writer.RunQuery(query);
+            RunQuery(query);
         }
 
         public void Clear(Color? c = null)
         {
             IChangePixelQuery query = new ClearMatrixQuery(c);
-            _writer.RunQuery(query);
+            RunQuery(query);
         }
 
         public void Update()
@@ -80,6 +81,32 @@ namespace ModernPainter.Painter
             return _writer.GetSize();
         }
 
+        private void RunQuery(IChangePixelQuery query)
+        {
+            /*MethodInfo optimizedMethod = query.GetType().GetMethods()
+                .FirstOrDefault(m => m.GetCustomAttributes<QueryForAttribute>()
+                    .Any(attr => attr.DatabaseType.IsAssignableFrom(this.GetType())));
+
+            if (optimizedMethod == null)
+            {
+                query.RunDefault(_writer);
+            }
+            else
+            {
+                object a = optimizedMethod.Invoke(query, new[] { _matrix }); // change to actually run an opt query
+
+                if (a is false) // if function reports it can't handle -> default
+                {
+                    query.RunDefault(_writer);
+                }
+            }*/
+
+            bool response = _writer.RunOptQuery(query);
+            if (!response)
+            {
+                _writer.RunQuery(query);
+            }
+        }
         
     }
 }

@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ModernPainter.Painter.Writer
+namespace ModernPainter.Core.Painter.Writer
 {
     [AttributeUsage(AttributeTargets.Method)]
-    internal class QueryForAttribute : Attribute
+    public class QueryForAttribute : Attribute
     {
         public Type DatabaseType { get; }
         public QueryForAttribute(Type databaseType) => DatabaseType = databaseType;

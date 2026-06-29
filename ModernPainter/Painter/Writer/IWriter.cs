@@ -1,13 +1,13 @@
-﻿using ModernPainter.Painter.Data;
+﻿using ModernPainter.Core.Painter.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ModernPainter.Painter.Writer
+namespace ModernPainter.Core.Painter.Writer
 {
-    internal interface IWriter
+    public interface IWriter
     {
         // Configuration
         /// <summary>
@@ -24,7 +24,7 @@ namespace ModernPainter.Painter.Writer
         /// <param name="point">virtual point of the pixel</param>
         /// <param name="color">color to set the pixel to</param>
         /// <param name="character">character to set the pixel to</param>
-        internal void ChangePixel(Vector2D point, Color color, char? character = null);
+        public void ChangePixel(Vector2D point, Color color, char? character = null);
 
         /// <summary>
         /// Runs a query to it's best ability
@@ -57,5 +57,11 @@ namespace ModernPainter.Painter.Writer
         /// Update the current content of the screen to the buffer
         /// </summary>
         public void RenderFrame();
+
+        /// <summary>
+        /// Runs an optimized version of the query
+        /// </summary>
+        /// <param name="query"></param>
+        public bool RunOptQuery(IChangePixelQuery query);
     }
 }

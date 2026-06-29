@@ -5,9 +5,9 @@ using System.Text;
 using System.Threading.Tasks;
 using StbImageSharp;
 
-namespace ModernPainter.Painter.Data
+namespace ModernPainter.Core.Painter.Data
 {
-    internal class InternalImage
+    public class InternalImage
     {
         private byte[] _rawRgbaData;
 
@@ -65,10 +65,10 @@ namespace ModernPainter.Painter.Data
         public void Crop(Rectangle2D rect)
         {
             // Cast properties safely from your Rectangle2D object
-            int cropX = (int)rect.X;
-            int cropY = (int)rect.Y;
-            int cropWidth = (int)rect.Width;
-            int cropHeight = (int)rect.Height;
+            int cropX = rect.X;
+            int cropY = rect.Y;
+            int cropWidth = rect.Width;
+            int cropHeight = rect.Height;
 
             // Ensure bounds don't blow out past current image limits
             cropX = Math.Clamp(cropX, 0, _width);
@@ -81,8 +81,8 @@ namespace ModernPainter.Painter.Data
             // Extract rows from the original image and pack them seamlessly 
             for (int y = 0; y < cropHeight; y++)
             {
-                int sourceIndex = (((cropY + y) * _width) + cropX) * 4;
-                int destIndex = (y * cropWidth) * 4;
+                int sourceIndex = ((cropY + y) * _width + cropX) * 4;
+                int destIndex = y * cropWidth * 4;
 
                 Buffer.BlockCopy(_rawRgbaData, sourceIndex, croppedData, destIndex, cropWidth * 4);
             }
@@ -97,8 +97,8 @@ namespace ModernPainter.Painter.Data
 
         public void Stretch(Vector2D targetSize)
         {
-            int destWidth = (int)targetSize.X;
-            int destHeight = (int)targetSize.Y;
+            int destWidth = targetSize.X;
+            int destHeight = targetSize.Y;
 
             byte[] stretchedData = new byte[destWidth * destHeight * 4];
 
@@ -135,7 +135,7 @@ namespace ModernPainter.Painter.Data
                             int rowOffset = y * _width * 4;
                             for (int x = xStart; x < xEnd; x++)
                             {
-                                int idx = rowOffset + (x * 4);
+                                int idx = rowOffset + x * 4;
                                 rSum += _rawRgbaData[idx];
                                 gSum += _rawRgbaData[idx + 1];
                                 bSum += _rawRgbaData[idx + 2];
@@ -144,7 +144,7 @@ namespace ModernPainter.Painter.Data
                             }
                         }
 
-                        int destIdx = ((dstY * destWidth) + dstX) * 4;
+                        int destIdx = (dstY * destWidth + dstX) * 4;
                         if (pixelCount > 0)
                         {
                             stretchedData[destIdx] = (byte)(rSum / pixelCount);
@@ -173,17 +173,17 @@ namespace ModernPainter.Painter.Data
                         int xCeil = Math.Clamp(xFloor + 1, 0, _width - 1);
                         float xWeight = srcX - xFloor;
 
-                        int idx00 = ((yFloor * _width) + xFloor) * 4;
-                        int idx10 = ((yFloor * _width) + xCeil) * 4;
-                        int idx01 = ((yCeil * _width) + xFloor) * 4;
-                        int idx11 = ((yCeil * _width) + xCeil) * 4;
+                        int idx00 = (yFloor * _width + xFloor) * 4;
+                        int idx10 = (yFloor * _width + xCeil) * 4;
+                        int idx01 = (yCeil * _width + xFloor) * 4;
+                        int idx11 = (yCeil * _width + xCeil) * 4;
 
-                        int destIdx = ((dstY * destWidth) + dstX) * 4;
+                        int destIdx = (dstY * destWidth + dstX) * 4;
 
-                        stretchedData[destIdx] = (byte)((_rawRgbaData[idx00] * (1 - xWeight) * (1 - yWeight)) + (_rawRgbaData[idx10] * xWeight * (1 - yWeight)) + (_rawRgbaData[idx01] * (1 - xWeight) * yWeight) + (_rawRgbaData[idx11] * xWeight * yWeight));
-                        stretchedData[destIdx + 1] = (byte)((_rawRgbaData[idx00 + 1] * (1 - xWeight) * (1 - yWeight)) + (_rawRgbaData[idx10 + 1] * xWeight * (1 - yWeight)) + (_rawRgbaData[idx01 + 1] * (1 - xWeight) * yWeight) + (_rawRgbaData[idx11 + 1] * xWeight * yWeight));
-                        stretchedData[destIdx + 2] = (byte)((_rawRgbaData[idx00 + 2] * (1 - xWeight) * (1 - yWeight)) + (_rawRgbaData[idx10 + 2] * xWeight * (1 - yWeight)) + (_rawRgbaData[idx01 + 2] * (1 - xWeight) * yWeight) + (_rawRgbaData[idx11 + 2] * xWeight * yWeight));
-                        stretchedData[destIdx + 3] = (byte)((_rawRgbaData[idx00 + 3] * (1 - xWeight) * (1 - yWeight)) + (_rawRgbaData[idx10 + 3] * xWeight * (1 - yWeight)) + (_rawRgbaData[idx01 + 3] * (1 - xWeight) * yWeight) + (_rawRgbaData[idx11 + 3] * xWeight * yWeight));
+                        stretchedData[destIdx] = (byte)(_rawRgbaData[idx00] * (1 - xWeight) * (1 - yWeight) + _rawRgbaData[idx10] * xWeight * (1 - yWeight) + _rawRgbaData[idx01] * (1 - xWeight) * yWeight + _rawRgbaData[idx11] * xWeight * yWeight);
+                        stretchedData[destIdx + 1] = (byte)(_rawRgbaData[idx00 + 1] * (1 - xWeight) * (1 - yWeight) + _rawRgbaData[idx10 + 1] * xWeight * (1 - yWeight) + _rawRgbaData[idx01 + 1] * (1 - xWeight) * yWeight + _rawRgbaData[idx11 + 1] * xWeight * yWeight);
+                        stretchedData[destIdx + 2] = (byte)(_rawRgbaData[idx00 + 2] * (1 - xWeight) * (1 - yWeight) + _rawRgbaData[idx10 + 2] * xWeight * (1 - yWeight) + _rawRgbaData[idx01 + 2] * (1 - xWeight) * yWeight + _rawRgbaData[idx11 + 2] * xWeight * yWeight);
+                        stretchedData[destIdx + 3] = (byte)(_rawRgbaData[idx00 + 3] * (1 - xWeight) * (1 - yWeight) + _rawRgbaData[idx10 + 3] * xWeight * (1 - yWeight) + _rawRgbaData[idx01 + 3] * (1 - xWeight) * yWeight + _rawRgbaData[idx11 + 3] * xWeight * yWeight);
                     }
                 }
             }
@@ -207,7 +207,7 @@ namespace ModernPainter.Painter.Data
 
                 for (int x = 0; x < _width; x++)
                 {
-                    int index = rowOffset + (x * 4);
+                    int index = rowOffset + x * 4;
 
                     pixelMatrix[y][x] = new Color(
                         _rawRgbaData[index],

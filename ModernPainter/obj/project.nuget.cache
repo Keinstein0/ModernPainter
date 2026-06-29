@@ -1,14 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "kTblA6BZg0o=",
+  "dgSpecHash": "aWfW2PsxCgQ=",
   "success": true,
-  "projectFilePath": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.csproj",
+  "projectFilePath": "C:\\Users\\alex\\source\\repos\\ModernPainter\\ModernPainter\\ModernPainter.Core.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\alex\\.nuget\\packages\\stbimagesharp\\2.30.15\\stbimagesharp.2.30.15.nupkg.sha512",
     "C:\\Users\\alex\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.22\\microsoft.windowsdesktop.app.ref.8.0.22.nupkg.sha512",
     "C:\\Users\\alex\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.22\\microsoft.netcore.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\alex\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512",
-    "C:\\Users\\alex\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.22\\microsoft.netcore.app.host.win-x64.8.0.22.nupkg.sha512"
+    "C:\\Users\\alex\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.22\\microsoft.aspnetcore.app.ref.8.0.22.nupkg.sha512"
   ],
   "logs": []
 }

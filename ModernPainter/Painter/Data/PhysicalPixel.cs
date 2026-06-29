@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ModernPainter.Painter.Data
+namespace ModernPainter.Core.Painter.Data
 {
-    internal struct PhysicalPixel
+    public struct PhysicalPixel
     {
         public PhysicalPixel()
         {
