@@ -83,24 +83,6 @@ namespace ModernPainter.Core.Painter
 
         private void RunQuery(IChangePixelQuery query)
         {
-            /*MethodInfo optimizedMethod = query.GetType().GetMethods()
-                .FirstOrDefault(m => m.GetCustomAttributes<QueryForAttribute>()
-                    .Any(attr => attr.DatabaseType.IsAssignableFrom(this.GetType())));
-
-            if (optimizedMethod == null)
-            {
-                query.RunDefault(_writer);
-            }
-            else
-            {
-                object a = optimizedMethod.Invoke(query, new[] { _matrix }); // change to actually run an opt query
-
-                if (a is false) // if function reports it can't handle -> default
-                {
-                    query.RunDefault(_writer);
-                }
-            }*/
-
             bool response = _writer.RunOptQuery(query);
             if (!response)
             {
