@@ -1,0 +1,192 @@
+﻿using ModernPainter.Console.Queries;
+using ModernPainter.Core.Painter.Data;
+using ModernPainter.Core.Painter.Writer;
+using System.Reflection;
+using System.Text;
+using System;
+
+namespace ModernPainter.Console.Writer
+{
+    public class ConsoleWriter : IWriter
+    {
+        private int _width;
+        private int _height;
+        private readonly Stream _stdout;
+        private ColorMatrix _matrix;
+        private PhysicalPixel _expansionPixel = new(); // instance to default (black)
+
+
+        private int _virtualWidth { get { return _width; } }
+        private int _virtualHeight { get { return _height * 2; } }
+
+        public ConsoleWriter()
+        {
+            _width = System.Console.WindowWidth;
+            _height = System.Console.WindowHeight;
+
+            _stdout = System.Console.OpenStandardOutput();
+            _matrix = new ColorMatrix(_width, _height);
+
+
+            System.Console.OutputEncoding = Encoding.UTF8;
+            System.Console.InputEncoding = Encoding.UTF8;
+            System.Console.CursorVisible = false;
+        }
+
+        // Setters
+        public void ChangePixel(Vector2D point, Color color, char? character = null) // ONLY he can do conversion (and the individual queries)
+        {
+            int x = point.X;
+            int y = point.Y;
+
+            int actualY = (int)Math.Floor((double)y / 2);
+
+            if (x >= _width || actualY >= _height || x < 0 || y < 0) // catch out of range
+            {
+                return;
+            }
+
+
+
+
+            var pixel = _matrix.GetPixel(x, actualY);
+
+            if (y % 2 != 0)
+            {
+                pixel.ForegroundColor.MergeColor(color);
+            }
+            else
+            {
+                pixel.BackgroundColor.MergeColor(color);
+            }
+
+            if (character != null)
+            {
+                pixel.Character = (char)character;
+            }
+
+            _matrix.UpdatePhysicalPixel(pixel, x, actualY);
+        }
+
+        void IWriter.RunQuery(IChangePixelQuery query)
+        {
+            MethodInfo optimizedMethod = query.GetType().GetMethods()
+            .FirstOrDefault(m => m.GetCustomAttributes<QueryForAttribute>()
+                .Any(attr => attr.DatabaseType.IsAssignableFrom(GetType())));
+
+            if (optimizedMethod == null)
+            {
+                query.RunDefault(this);
+            }
+            else
+            {
+                object a = optimizedMethod.Invoke(query, new[] { _matrix });
+
+                if (a is false) // if function reports it can't handle -> default
+                {
+                    query.RunDefault(this);
+                }
+            }
+        }
+
+
+        // Getters
+        public PhysicalColor GetPixel(Vector2D point)
+        {
+            int x = point.X;
+            int y = point.Y;
+
+            int actualY = (int)Math.Floor((double)y / 2);
+
+            var pixel = _matrix.GetPixel(x, actualY);
+
+            if (y % 2 != 0)
+            {
+                return pixel.ForegroundColor;
+            }
+            else
+            {
+                return pixel.BackgroundColor;
+            }
+        }
+
+        public char? GetChar(Vector2D point)
+        {
+            int x = point.X;
+            int y = point.Y;
+
+            int actualY = (int)Math.Floor((double)y / 2);
+
+            var pixel = _matrix.GetPixel(x, actualY);
+
+            return pixel.Character == PhysicalPixel.PIXEL ? null : pixel.Character;
+        }
+
+        public Rectangle2D GetSize()
+        {
+            return new Rectangle2D()
+            {
+                X = 0,
+                Y = 0,
+
+                Width = _virtualWidth,
+                Height = _virtualHeight
+            };
+        }
+
+        // Runners
+        public void RenderFrame()
+        {
+            if (_width != System.Console.WindowWidth || _height != System.Console.WindowHeight)
+            {
+                Resize();
+            }
+
+            var buffer = _matrix.AsBytes();
+
+            _stdout.Write(buffer, 0, buffer.Length);
+            _stdout.Flush();
+        }
+
+
+        private void Resize()
+        {
+            _width = System.Console.WindowWidth;
+            _height = System.Console.WindowHeight;
+
+            _matrix.Resize(_width, _height, _expansionPixel);
+        }
+
+        // Configuration
+        public void SetExpansionPixelColor(Color c)
+        {
+            _expansionPixel.BackgroundColor.MergeColor(c);
+            _expansionPixel.ForegroundColor.MergeColor(c);
+        }
+
+        public bool RunOptQuery(IChangePixelQuery query)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var queryType = query.GetType();
+
+            var optimizedType = assembly.GetTypes()
+                .FirstOrDefault(t => typeof(IUpgradeQuery).IsAssignableFrom(t) &&
+                                     t.IsSubclassOf(queryType) &&
+                                     !t.IsInterface && !t.IsAbstract);
+
+            if (optimizedType == null)
+            {
+                return false;
+            }
+
+            object[] constructorArgs = new object[] { query };
+            var instance = (IUpgradeQuery)Activator.CreateInstance(optimizedType, constructorArgs);
+
+            instance.RunConsoleOptimized(_matrix);
+            return true;
+        }
+    }
+
+
+    
+}
