@@ -7,7 +7,7 @@ using StbImageSharp;
 
 namespace ModernPainter.Core.Painter.Data
 {
-    public class InternalImage
+    public struct InternalImage
     {
         private byte[] _rawRgbaData;
 

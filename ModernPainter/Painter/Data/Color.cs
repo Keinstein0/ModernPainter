@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Core.Painter.Data
 {
-    public class Color
+    public struct Color
     {
         private int _red;
         private int _green;

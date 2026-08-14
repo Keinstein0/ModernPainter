@@ -22,7 +22,7 @@ namespace ModernPainter.Core
         public async Task RunApp(Painter.ModernPainter painter)
         {
             // Made this awaitable to handle the application flow cleanly
-            ModernImage img = new ModernImage("C:\\Users\\alex\\OneDrive\\Bilder\\Screenshots 1\\Screenshot 2026-06-22 091920.png");
+            //ModernImage img = new ModernImage("C:\\Users\\alex\\OneDrive\\Bilder\\Screenshots 1\\Screenshot 2026-06-22 091920.png");
             var r = painter.GetFrame();
 
             //painter.BlitImage(img, r);
@@ -44,11 +44,13 @@ namespace ModernPainter.Core
             // --- THE SIZE FIX ---
             // Set a target width. ffmpeg will auto-scale the height to maintain the aspect ratio.
             // Adjust this based on your canvas capabilities (e.g., 480, 640, 1280)
+            
             int targetWidth = 640;
 
             string outputDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "extracted_frames");
             string tempVideoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp_video.mp4");
 
+            Console.WriteLine("Idk");
             // Setup and clean previous runs
             SetupDirectories(outputDir, tempVideoPath);
 

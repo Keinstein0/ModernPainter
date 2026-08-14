@@ -19,7 +19,7 @@ namespace ModernPainter.Core.Painter.Writer.DefaultQueries
             }
             else
             {
-                _color = color;
+                _color = color.Value;
             }
         }
 

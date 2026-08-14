@@ -51,7 +51,7 @@ namespace ModernPainter.Core.Painter
             foregroundColor = foregroundColor == null ? new Color("#ffffff") : foregroundColor;
             backgroundColor = backgroundColor == null ? new Color("#00000000") : backgroundColor;
 
-            IChangePixelQuery query = new WriteTextQuery(text, point, foregroundColor, backgroundColor);
+            IChangePixelQuery query = new WriteTextQuery(text, point, foregroundColor.Value, backgroundColor.Value);
             RunQuery(query);
         }
 
