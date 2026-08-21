@@ -72,6 +72,7 @@ namespace ModernPainter.Core.Painter
         {
             _frameCount++;
             _writer.RenderFrame();
+            _reader.Update();
 
             double elapsedSeconds = (DateTime.Now - _lastFpsUpdate).TotalSeconds;
             if (elapsedSeconds >= 1.0)

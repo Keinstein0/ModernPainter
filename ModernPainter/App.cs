@@ -26,7 +26,9 @@ namespace ModernPainter.Core
 
             while (true)
             {
-                painter.FillRectangle(new Rectangle2D(0,0, 20, 20), new Color("#a0a020"));
+                var location = painter.MousePosition;
+                
+                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#a0a020"));
                 
                 painter.WriteText(
                     new Vector2D(0,0),
@@ -35,7 +37,7 @@ namespace ModernPainter.Core
 
                 painter.Update();
 
-                //if (trace.Content.Contains("\n")) break;
+                if (trace.Content.Contains("end")) break;
 
                 await Task.Delay(16);
             }
