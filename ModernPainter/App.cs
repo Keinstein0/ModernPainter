@@ -12,13 +12,6 @@ namespace ModernPainter.Core
 {
     public class App
     {
-        private readonly IWriter _writer;
-
-        public App(IWriter writer)
-        {
-            _writer = writer;
-        }
-
         public async Task RunApp(Painter.ModernPainter painter)
         {
             // Made this awaitable to handle the application flow cleanly

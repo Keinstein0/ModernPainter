@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Core.Painter.Reader
 {
-    public interface IKeyboardTrace
+    public abstract class KeyboardTrace
     {
-        public string GetContent();
+        public string Content = String.Empty;
 
-        public void End();
+        public abstract void End();
     }
 }

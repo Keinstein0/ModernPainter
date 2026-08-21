@@ -1,6 +1,8 @@
 ﻿using ModernPainter.Core.Painter.Data;
+using ModernPainter.Core.Painter.Reader;
 using ModernPainter.Core.Painter.Writer;
 using ModernPainter.Core.Painter.Writer.DefaultQueries;
+using ModernPainter.Painter.Reader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +15,8 @@ namespace ModernPainter.Core.Painter
     public class ModernPainter
     {
         private IWriter _writer;
+        private IReader _reader;
+        private Mapping _keyMapping;
 
         public int TargetFPS = 60;
         public double FPS { get; private set; }
@@ -23,10 +27,13 @@ namespace ModernPainter.Core.Painter
         private int _frameCount = 0;
         DateTime _lastFpsUpdate = DateTime.Now;
 
-        public ModernPainter(IWriter output)
+        public ModernPainter(IWriter output, IReader input)
         {
             _writer = output;
+            _reader = input;
+            _keyMapping = new Mapping();
         }
+
 
         public void ChangePixel(Vector2D point, Color color)
         {
@@ -89,6 +96,14 @@ namespace ModernPainter.Core.Painter
                 _writer.RunQuery(query);
             }
         }
+
+
+
+        // Reader related
+        public bool KeyDown(string key) => _keyMapping.GetMapping(key);
+        public Vector2D MousePosition  => _reader.GetMousePosition();
+        
+
         
     }
 }
