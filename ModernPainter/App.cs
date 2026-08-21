@@ -22,7 +22,27 @@ namespace ModernPainter.Core
             //painter.Update();
             //Thread.Sleep(10000);
 
-            await YTClient(painter);
+            var trace = await painter.StartKeyboardTrace();
+
+            while (true)
+            {
+                painter.FillRectangle(new Rectangle2D(0,0, 20, 20), new Color("#a0a020"));
+                
+                painter.WriteText(
+                    new Vector2D(0,0),
+                    trace.Content
+                );
+
+                painter.Update();
+
+                //if (trace.Content.Contains("\n")) break;
+
+                await Task.Delay(16);
+            }
+
+            trace.End();
+
+            //await YTClient(painter);
         }
 
         private static async Task YTClient(Painter.ModernPainter painter)

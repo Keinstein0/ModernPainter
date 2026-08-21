@@ -70,7 +70,7 @@ namespace ModernPainter.Console.Writer
 
         void IWriter.RunQuery(IChangePixelQuery query)
         {
-            MethodInfo optimizedMethod = query.GetType().GetMethods()
+            MethodInfo? optimizedMethod = query.GetType().GetMethods()
             .FirstOrDefault(m => m.GetCustomAttributes<QueryForAttribute>()
                 .Any(attr => attr.DatabaseType.IsAssignableFrom(GetType())));
 
@@ -80,7 +80,7 @@ namespace ModernPainter.Console.Writer
             }
             else
             {
-                object a = optimizedMethod.Invoke(query, new[] { _matrix });
+                object a = optimizedMethod.Invoke(query, new[] { _matrix })!;
 
                 if (a is false) // if function reports it can't handle -> default
                 {
@@ -180,9 +180,9 @@ namespace ModernPainter.Console.Writer
             }
 
             object[] constructorArgs = new object[] { query };
-            var instance = (IUpgradeQuery)Activator.CreateInstance(optimizedType, constructorArgs);
+            var instance = (IUpgradeQuery)Activator.CreateInstance(optimizedType, constructorArgs)!;
 
-            instance.RunConsoleOptimized(_matrix);
+            instance?.RunConsoleOptimized(_matrix);
             return true;
         }
     }

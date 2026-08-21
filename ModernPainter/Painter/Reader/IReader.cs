@@ -10,7 +10,7 @@ namespace ModernPainter.Core.Painter.Reader
 {
     public interface IReader
     {
-        public KeyboardTrace StartKeyTrace();
+        public Task<KeyboardTrace> StartKeyTrace();
         public Vector2D GetMousePosition();
     }
 }

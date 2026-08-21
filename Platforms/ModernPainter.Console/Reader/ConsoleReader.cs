@@ -10,13 +10,24 @@ namespace ModernPainter.Console.Reader
 {
     internal class ConsoleReader : IReader
     {
+        private KeyboardTrace? _keyboardTrace = null;
+        
+        
         public Vector2D GetMousePosition()
         {
             throw new NotImplementedException();
         }
-        public KeyboardTrace StartKeyTrace()
+        public async Task<KeyboardTrace> StartKeyTrace()
         {
-            throw new NotImplementedException();
+            if (_keyboardTrace != null)
+            {
+                return _keyboardTrace;
+            }
+
+            ConsoleTrace trace = new ConsoleTrace();
+            await trace.Start();
+
+            return trace;
         }
     }
 }

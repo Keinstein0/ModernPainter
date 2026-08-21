@@ -102,8 +102,6 @@ namespace ModernPainter.Core.Painter
         // Reader related
         public bool KeyDown(string key) => _keyMapping.GetMapping(key);
         public Vector2D MousePosition  => _reader.GetMousePosition();
-        
-
-        
+        public async Task<KeyboardTrace> StartKeyboardTrace() => await _reader.StartKeyTrace();
     }
 }

@@ -35,12 +35,22 @@ namespace ModernPainter.Core.Painter.Writer.DefaultQueries
         // This function is a fallback and not suitable for use since text parsing is highly client dependant
         public void RunDefault(IWriter writer)
         {
+            int yOffset = 0;
+            
             for (int i = 0; i < _text.Length; i++)
             {
                 char c = _text[i];
+
+                if (c == '\n')
+                {
+                    yOffset++;
+                    continue;
+                }
+
                 Vector2D charpoint = _point;
 
                 charpoint.X += i;
+                charpoint.Y += yOffset * 2;
 
                 writer.ChangePixel(charpoint, new Color("#00000000"), c);
             }

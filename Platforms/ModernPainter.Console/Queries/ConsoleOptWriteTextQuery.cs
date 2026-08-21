@@ -19,13 +19,23 @@ namespace ModernPainter.Console.Queries
 
             int actualY = (int)Math.Floor((double)y / 2);
             int actualX = x;
+            int newlineXOffset = 0;
 
 
             for (int i = 0; i < base._text.Length; i++)
             {
                 char c = base._text[i];
 
+                if (c == '\n')
+                {
+                    actualY++;
+                    newlineXOffset = i + 1;
+                    continue;
+                }
+
+
                 actualX = x + i;
+                actualX -= newlineXOffset;
 
                 if (actualX >= matrix.XSize || actualY >= matrix.YSize) // catch out of range
                 {
