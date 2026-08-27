@@ -1,146 +1,171 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace ModernPainter.Console.Reader.MousePositioning
 {
     public class LinuxMouseDriver : IMouseDriver
     {
-        
-        private static readonly Regex SgrMouseRegex = new Regex(@"\x1b\[\<(\d+);(\d+);(\d+)([Mm])", RegexOptions.Compiled);
-        private static readonly Regex CellSizeRegex = new Regex(@"\x1b\[6;(\d+);(\d+)t", RegexOptions.Compiled);
-
-        private int _fontWidthPx = 8;   // Fallback
-        private int _fontHeightPx = 16; // Fallback
-
         private readonly Stream _stdin = System.Console.OpenStandardInput();
-        private readonly byte[] _readBuffer = new byte[1024];
+        private readonly byte[] _readBuffer = new byte[4096];
         private readonly StringBuilder _textBuffer = new StringBuilder();
+        private readonly object _bufferLock = new object();
 
         private (int charX, int virtualY, bool isPressed)? _currentState;
-        private readonly StringBuilder _buffer = new StringBuilder();
+        private Thread _readerThread;
+        private CancellationTokenSource _cts;
+        private bool _disposed;
 
         public void Initialize()
         {
-            
             try
             {
                 System.Diagnostics.Process.Start("stty", "-echo raw -icanon min 0 time 0").WaitForExit();
             }
             catch { }
-            
-            // 1000: enable mouse tracking, 1006: SGR mode, 1016: SGR-Pixel mode
-            System.Console.Write("\x1b[?1000h\x1b[?1006h\x1b[?1016h");
-            // Ask terminal for character cell dimensions in pixels
-            System.Console.Write("\x1b[16t");
+
+            // 1000: press/release tracking, 1002: button-event, 1003: any-event (motion), 1006: SGR mode
+            System.Console.Write("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
+
+            _cts = new CancellationTokenSource();
+            _readerThread = new Thread(ReadLoop) { IsBackground = true, Name = "LinuxMouseDriver" };
+            _readerThread.Start(_cts.Token);
         }
 
         public void Update()
         {
-            // 1. Read directly from standard input stream without Console.ReadKey stripping \x1b
-            while (System.Console.KeyAvailable || _stdin.Length > 0)
+            string snapshot;
+            lock (_bufferLock)
             {
-                int bytesRead = _stdin.Read(_readBuffer, 0, _readBuffer.Length);
-                if (bytesRead <= 0) break;
-
-                _textBuffer.Append(Encoding.ASCII.GetString(_readBuffer, 0, bytesRead));
+                snapshot = _textBuffer.ToString();
+                _textBuffer.Clear();
             }
 
-            if (_textBuffer.Length == 0) return;
-
-            string input = _textBuffer.ToString();
-            ParseRawBuffer(input);
-
-            // Keep buffer empty
-            _textBuffer.Clear();
+            if (snapshot.Length == 0) return;
+            ParseBuffer(snapshot);
         }
 
         public (int charX, int virtualY, bool isPressed)? GetState() => _currentState;
 
         public void Shutdown()
         {
-            System.Console.Write("\x1b[?1000l\x1b[?1006l\x1b[?1016l");
+            _cts?.Cancel();
+            _readerThread?.Join(500);
+            _cts?.Dispose();
+
+            System.Console.Write("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
             try
             {
                 System.Diagnostics.Process.Start("stty", "sane").WaitForExit();
             }
             catch { }
+
+            _disposed = true;
         }
 
-
-        private void ParseRawBuffer(string input)
+        private void ReadLoop(object? tokenObj)
         {
-            // Check font metrics response (\x1b[6;H;Wt)
-            int sizeIdx = input.IndexOf("\x1b[6;");
-            if (sizeIdx != -1)
+            var ct = (CancellationToken)tokenObj!;
+            try
             {
-                int endIdx = input.IndexOf('t', sizeIdx);
-                if (endIdx != -1)
+                while (!ct.IsCancellationRequested && !_disposed)
                 {
-                    string[] parts = input.Substring(sizeIdx + 4, endIdx - (sizeIdx + 4)).Split(';');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int h) && int.TryParse(parts[1], out int w))
+                    int bytesRead = _stdin.Read(_readBuffer, 0, _readBuffer.Length);
+                    if (bytesRead <= 0)
                     {
-                        if (h > 0 && w > 0)
-                        {
-                            _fontHeightPx = h;
-                            _fontWidthPx = w;
-                        }
+                        Thread.Sleep(10);
+                        continue;
+                    }
+
+                    string chunk = Encoding.ASCII.GetString(_readBuffer, 0, bytesRead);
+                    lock (_bufferLock)
+                    {
+                        _textBuffer.Append(chunk);
                     }
                 }
             }
+            catch (ObjectDisposedException) { }
+            catch (IOException) { }
+        }
 
-            // Process mouse input: Now the sequence correctly starts with \x1b[<
-            int mouseIdx = input.LastIndexOf("\x1b[<");
-            if (mouseIdx != -1)
+        private void ParseBuffer(string content)
+        {
+            while (content.Length > 0)
             {
-                int endIdx = -1;
-                for (int i = mouseIdx; i < input.Length; i++)
+                int escIdx = content.IndexOf('\x1b');
+
+                if (escIdx == -1)
                 {
-                    if (input[i] == 'M' || input[i] == 'm')
-                    {
-                        endIdx = i;
-                        break;
-                    }
+                    break;
                 }
 
-                if (endIdx != -1)
+                if (escIdx > 0)
                 {
-                    char action = input[endIdx]; // 'M' = click/move, 'm' = release
-                    string payload = input.Substring(mouseIdx + 3, endIdx - (mouseIdx + 3));
-                    string[] parts = payload.Split(';');
+                    content = content.Substring(escIdx);
+                    continue;
+                }
 
-                    if (parts.Length == 3 &&
-                        int.TryParse(parts[0], out int button) &&
-                        int.TryParse(parts[1], out int rawX) &&
-                        int.TryParse(parts[2], out int rawY))
+                if (content.Length < 2)
+                {
+                    break;
+                }
+
+                if (content[1] == '[')
+                {
+                    int terminatorIdx = -1;
+                    for (int i = 2; i < content.Length; i++)
                     {
-                        rawX -= 1; // 1-based ANSI to 0-based
-                        rawY -= 1;
-
-                        int charX;
-                        int virtualY;
-
-                        // Notice your raw values in image: (103, 27) vs (149, 37)
-                        // If coordinates exceed standard column count, terminal is operating in 1016 pixel mode
-                        if (rawY > System.Console.WindowHeight * 2)
+                        char c = content[i];
+                        if (c >= 0x40 && c <= 0x7E)
                         {
-                            charX = rawX / _fontWidthPx;
-                            int halfCellHeight = _fontHeightPx / 2;
-                            virtualY = rawY / halfCellHeight;
+                            terminatorIdx = i;
+                            break;
                         }
-                        else
-                        {
-                            // 1006 Character Mode Fallback
-                            charX = rawX;
-                            virtualY = rawY * 2;
-                        }
-
-                        bool isPressed = (action == 'M') && (button == 0 || button == 32);
-                        _currentState = (charX, virtualY, isPressed);
                     }
+
+                    if (terminatorIdx == -1)
+                    {
+                        break;
+                    }
+
+                    string sequence = content.Substring(0, terminatorIdx + 1);
+                    ProcessSingleSequence(sequence);
+                    content = content.Substring(terminatorIdx + 1);
+                }
+                else
+                {
+                    content = content.Substring(Math.Min(2, content.Length));
+                }
+            }
+        }
+
+        private void ProcessSingleSequence(string sequence)
+        {
+            // Mouse input SGR (1006): \x1b[<B;X;YM or \x1b[<B;X;ym
+            // With 1003 enabled, motion events are also reported in this format.
+            if (sequence.StartsWith("\x1b[<") && (sequence.EndsWith("M") || sequence.EndsWith("m")))
+            {
+                char action = sequence[sequence.Length - 1]; // 'M' = press/drag, 'm' = release
+                string payload = sequence.Substring(3, sequence.Length - 4); // strip "\x1b[<" and terminator
+                string[] parts = payload.Split(';');
+
+                if (parts.Length == 3 &&
+                    int.TryParse(parts[0], out int button) &&
+                    int.TryParse(parts[1], out int rawX) &&
+                    int.TryParse(parts[2], out int rawY))
+                {
+                    // 1006 SGR mode reports 1-based character coordinates; convert to 0-based.
+                    rawX -= 1;
+                    rawY -= 1;
+
+                    // 1006 character mode: rawX = character column, rawY = character row.
+                    // Our virtual coordinate system uses 2 virtual pixel rows per character row.
+                    int charX = rawX;
+                    int virtualY = rawY * 2;
+
+                    bool isPressed = (action == 'M') && (button == 0 || button == 32);
+                    _currentState = (charX, virtualY, isPressed);
                 }
             }
         }
