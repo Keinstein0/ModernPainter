@@ -8,6 +8,7 @@ namespace ModernPainter.Console.Reader.MousePositioning
     public class LinuxMouseDriver : IMouseDriver
     {
         private readonly Stream _stdin = System.Console.OpenStandardInput();
+        private readonly Stream _stdout = System.Console.OpenStandardOutput();
         private readonly byte[] _readBuffer = new byte[4096];
         private readonly StringBuilder _textBuffer = new StringBuilder();
         private readonly object _bufferLock = new object();
@@ -26,7 +27,11 @@ namespace ModernPainter.Console.Reader.MousePositioning
             catch { }
 
             // 1000: press/release tracking, 1002: button-event, 1003: any-event (motion), 1006: SGR mode
-            System.Console.Write("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
+            // Write config through our own stdout stream and flush immediately so the terminal
+            // receives it before any render output (Console.Write can buffer in Console.Out).
+            byte[] config = Encoding.ASCII.GetBytes("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
+            _stdout.Write(config, 0, config.Length);
+            _stdout.Flush();
 
             _cts = new CancellationTokenSource();
             _readerThread = new Thread(ReadLoop) { IsBackground = true, Name = "LinuxMouseDriver" };
@@ -54,7 +59,10 @@ namespace ModernPainter.Console.Reader.MousePositioning
             _readerThread?.Join(500);
             _cts?.Dispose();
 
-            System.Console.Write("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
+            byte[] disable = Encoding.ASCII.GetBytes("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
+            _stdout.Write(disable, 0, disable.Length);
+            _stdout.Flush();
+
             try
             {
                 System.Diagnostics.Process.Start("stty", "sane").WaitForExit();
@@ -64,6 +72,10 @@ namespace ModernPainter.Console.Reader.MousePositioning
             _disposed = true;
         }
 
+        /// <summary>
+        /// Background thread that continuously drains fd 0 in raw mode.
+        /// Blocking reads are fine here — the thread just waits for bytes and appends them.
+        /// </summary>
         private void ReadLoop(object? tokenObj)
         {
             var ct = (CancellationToken)tokenObj!;
@@ -89,30 +101,41 @@ namespace ModernPainter.Console.Reader.MousePositioning
             catch (IOException) { }
         }
 
+        /// <summary>
+        /// Scans the buffer left-to-right, parsing complete ANSI sequences and
+        /// preserving any incomplete/fragmented sequence tail so it can be
+        /// completed on the next call.
+        /// </summary>
         private void ParseBuffer(string content)
         {
             while (content.Length > 0)
             {
                 int escIdx = content.IndexOf('\x1b');
 
+                // No escape sequence starter found. Discard any non-escape junk and stop.
                 if (escIdx == -1)
                 {
                     break;
                 }
 
+                // Discard any non-escape junk before the first escape character.
                 if (escIdx > 0)
                 {
                     content = content.Substring(escIdx);
                     continue;
                 }
 
+                // We only have a lone '\x1b' — could be the start of a sequence that
+                // hasn't arrived yet. Preserve it for the next tick.
                 if (content.Length < 2)
                 {
-                    break;
+                    Requeue(content);
+                    return;
                 }
 
                 if (content[1] == '[')
                 {
+                    // CSI sequence: find the terminator (ASCII 0x40–0x7E).
                     int terminatorIdx = -1;
                     for (int i = 2; i < content.Length; i++)
                     {
@@ -124,9 +147,11 @@ namespace ModernPainter.Console.Reader.MousePositioning
                         }
                     }
 
+                    // No terminator found — sequence is incomplete. Preserve the whole tail.
                     if (terminatorIdx == -1)
                     {
-                        break;
+                        Requeue(content);
+                        return;
                     }
 
                     string sequence = content.Substring(0, terminatorIdx + 1);
@@ -135,8 +160,21 @@ namespace ModernPainter.Console.Reader.MousePositioning
                 }
                 else
                 {
+                    // Non-CSI escape (e.g. Alt+key). Discard it (2 bytes minimum).
                     content = content.Substring(Math.Min(2, content.Length));
                 }
+            }
+        }
+
+        /// <summary>
+        /// Pushes a partial sequence back into the shared buffer so it can be
+        /// completed when more bytes arrive on the next tick.
+        /// </summary>
+        private void Requeue(string tail)
+        {
+            lock (_bufferLock)
+            {
+                _textBuffer.Insert(0, tail);
             }
         }
 
