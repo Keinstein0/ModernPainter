@@ -30,12 +30,12 @@ namespace ModernPainter.Core
             {
                 counter++;
                 painter.Update();
-                painter.Clear();
+                //painter.Clear();
 
 
                 var location = painter.MousePosition;
                 
-                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#af0000"));
+                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#af00003e"));
                 
                 painter.WriteText(
                     new Vector2D(0,0),

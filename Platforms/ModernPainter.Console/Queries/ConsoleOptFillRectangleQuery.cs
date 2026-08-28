@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ModernPainter.Console.Queries
 {
-    public class ConsoleOptFillRectangleQuery : FillRectangleQuery, IUpgradeQuery
+    public class ConsoleOptFillRectangleQuery : FillRectangleQuery
     {
         public ConsoleOptFillRectangleQuery(FillRectangleQuery r) : base(r) { }
 
@@ -21,7 +21,7 @@ namespace ModernPainter.Console.Queries
         {
             _matrix = matrix;
             
-            if (_color.Alpha != 255)
+            if (_color.Alpha != 0)
             {
                 return false;
             }
@@ -71,8 +71,8 @@ namespace ModernPainter.Console.Queries
                     for (int i = 0; i < rowSlice.Length; i++)
                     {
                         ref PhysicalPixel pixel = ref rowSlice[i];
-                        if (fillTop) pixel.ForegroundColor = targetColor;
-                        if (fillBottom) pixel.BackgroundColor = targetColor;
+                        if (fillBottom) pixel.ForegroundColor = targetColor;
+                        if (fillTop) pixel.BackgroundColor = targetColor;
                     }
                 }
             }
