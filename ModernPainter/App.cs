@@ -22,7 +22,7 @@ namespace ModernPainter.Core
             //painter.Update();
             //Thread.Sleep(10000);
 
-            //var trace = await painter.StartKeyboardTrace();
+            var trace = await painter.StartKeyboardTrace();
             int counter = 0;
             painter.Clear();
 
@@ -32,14 +32,24 @@ namespace ModernPainter.Core
                 painter.Update();
                 //painter.Clear();
 
+                var frame = painter.GetFrame();
+
+                painter.FillRectangle(frame, new Color("#00000001"));
+
 
                 var location = painter.MousePosition;
                 
-                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#af00003e"));
+                painter.ChangePixel(new Vector2D(location.X, location.Y), new Color("#af0000"));
                 
                 painter.WriteText(
                     new Vector2D(0,0),
-                    $"position x{location.X}, y{location.Y}, ctr:{counter}"
+                    $"position x{location.X}, y{location.Y}, ctr:{counter}, framex: {frame.Width} framey: {frame.Height}"
+                );
+
+
+                painter.WriteText(
+                    new Vector2D(0,1),
+                    trace.Content
                 );
 
 
@@ -48,7 +58,7 @@ namespace ModernPainter.Core
 
                 //if (trace.Content.Contains("end")) break;
 
-                await Task.Delay(16);
+                //await Task.Delay(1);
             }
 
             //trace.End();
