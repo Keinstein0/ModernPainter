@@ -22,27 +22,36 @@ namespace ModernPainter.Core
             //painter.Update();
             //Thread.Sleep(10000);
 
-            var trace = await painter.StartKeyboardTrace();
+            //var trace = await painter.StartKeyboardTrace();
+            int counter = 0;
+            painter.Clear();
 
             while (true)
             {
+                counter++;
+                painter.Update();
+                painter.Clear();
+
+
                 var location = painter.MousePosition;
                 
-                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#a0a020"));
+                painter.FillRectangle(new Rectangle2D(0,0, location.X, location.Y), new Color("#af0000"));
                 
                 painter.WriteText(
                     new Vector2D(0,0),
-                    trace.Content
+                    $"position x{location.X}, y{location.Y}, ctr:{counter}"
                 );
 
-                painter.Update();
 
-                if (trace.Content.Contains("end")) break;
+
+
+
+                //if (trace.Content.Contains("end")) break;
 
                 await Task.Delay(16);
             }
 
-            trace.End();
+            //trace.End();
 
             //await YTClient(painter);
         }

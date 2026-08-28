@@ -27,10 +27,14 @@ namespace ModernPainter.Console.Writer
             _stdout = System.Console.OpenStandardOutput();
             _matrix = new ColorMatrix(_width, _height);
 
-
             System.Console.OutputEncoding = Encoding.UTF8;
             System.Console.InputEncoding = Encoding.UTF8;
             System.Console.CursorVisible = false;
+
+            // Clear screen and scrollback once at startup so no residual
+            // scrollback from the shell prompt can shift the canvas down.
+            _stdout.Write(new byte[] { 0x1B, (byte)'[', (byte)'2', (byte)'J', 0x1B, (byte)'[', (byte)'3', (byte)'J', 0x1B, (byte)'[', (byte)'H' }, 0, 11);
+            _stdout.Flush();
         }
 
         // Setters

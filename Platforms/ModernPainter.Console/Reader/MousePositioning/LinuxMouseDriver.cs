@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -7,31 +8,70 @@ namespace ModernPainter.Console.Reader.MousePositioning
 {
     public class LinuxMouseDriver : IMouseDriver
     {
-        private readonly Stream _stdin = System.Console.OpenStandardInput();
-        private readonly Stream _stdout = System.Console.OpenStandardOutput();
+        private Stream _tty;
         private readonly byte[] _readBuffer = new byte[4096];
-        private readonly StringBuilder _textBuffer = new StringBuilder();
+        private readonly List<byte> _buffer = new List<byte>();
         private readonly object _bufferLock = new object();
+        private int _totalBytesReceived;
+        private DateTime _lastHeartbeat = DateTime.MinValue;
 
         private (int charX, int virtualY, bool isPressed)? _currentState;
         private Thread _readerThread;
         private CancellationTokenSource _cts;
         private bool _disposed;
+        private int _cellHeightPx = -1;
+        private int _cellWidthPx = -1;
 
         public void Initialize()
         {
+            // Open the controlling terminal explicitly so stty and our reads
+            // operate on the same device the user sees. Console.OpenStandardInput()
+            // can resolve to a different fd when running under IDE terminals or tmux.
+            _tty = System.IO.File.Open("/dev/tty", System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite);
+
+            bool sttyOk = false;
             try
             {
-                System.Diagnostics.Process.Start("stty", "-echo raw -icanon min 0 time 0").WaitForExit();
+                // -F /dev/tty explicitly targets the controlling terminal so stty
+                // modifies the same device the user sees, regardless of whether
+                // our process's stdin is a different fd (e.g. under VS Code, tmux).
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "stty",
+                    Arguments = "-F /dev/tty -echo raw -icanon min 0 time 0",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                using var proc = System.Diagnostics.Process.Start(psi);
+                proc.WaitForExit();
+                sttyOk = proc.ExitCode == 0;
             }
             catch { }
 
-            // 1000: press/release tracking, 1002: button-event, 1003: any-event (motion), 1006: SGR mode
-            // Write config through our own stdout stream and flush immediately so the terminal
-            // receives it before any render output (Console.Write can buffer in Console.Out).
-            byte[] config = Encoding.ASCII.GetBytes("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h");
-            _stdout.Write(config, 0, config.Length);
-            _stdout.Flush();
+            // Fingerprint the terminal environment and which device we're bound to.
+            var diag = new System.Text.StringBuilder();
+            diag.AppendLine($"[LinuxMouseDriver] stty raw mode: {(sttyOk ? "OK" : "FAILED")}");
+            diag.AppendLine($"[LinuxMouseDriver] stdin is TTY: {System.Console.IsInputRedirected == false}");
+            diag.AppendLine($"[LinuxMouseDriver] stdout is TTY: {System.Console.IsOutputRedirected == false}");
+            diag.AppendLine($"[LinuxMouseDriver] TERM: {Environment.GetEnvironmentVariable("TERM")}");
+            diag.AppendLine($"[LinuxMouseDriver] tty device: /dev/tty");
+            System.IO.File.WriteAllText("/tmp/modernpainter_mouse_debug.log", diag.ToString());
+
+            // 1000: press/release tracking, 1002: button-event, 1003: any-event (motion),
+            // 1006: SGR mode, 1016: SGR-Pixels (reports position in device pixels).
+            // Write config through the tty stream and flush immediately so the terminal
+            // receives it before any render output.
+            byte[] config = Encoding.ASCII.GetBytes("\x1b[?1000h\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?1016h");
+            _tty.Write(config, 0, config.Length);
+            _tty.Flush();
+
+            // Request character-cell size in device pixels (CSI 16 t → CSI 6 ; H ; W t)
+            // so pixel-mode (1016) coordinates can be mapped back to the 2-virtual-pixel-per-cell grid.
+            byte[] cellSizeQuery = Encoding.ASCII.GetBytes("\x1b[16t");
+            _tty.Write(cellSizeQuery, 0, cellSizeQuery.Length);
+            _tty.Flush();
 
             _cts = new CancellationTokenSource();
             _readerThread = new Thread(ReadLoop) { IsBackground = true, Name = "LinuxMouseDriver" };
@@ -40,15 +80,11 @@ namespace ModernPainter.Console.Reader.MousePositioning
 
         public void Update()
         {
-            string snapshot;
             lock (_bufferLock)
             {
-                snapshot = _textBuffer.ToString();
-                _textBuffer.Clear();
+                if (_buffer.Count == 0) return;
+                ParseBuffer(_buffer);
             }
-
-            if (snapshot.Length == 0) return;
-            ParseBuffer(snapshot);
         }
 
         public (int charX, int virtualY, bool isPressed)? GetState() => _currentState;
@@ -59,22 +95,25 @@ namespace ModernPainter.Console.Reader.MousePositioning
             _readerThread?.Join(500);
             _cts?.Dispose();
 
-            byte[] disable = Encoding.ASCII.GetBytes("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l");
-            _stdout.Write(disable, 0, disable.Length);
-            _stdout.Flush();
+            byte[] disable = Encoding.ASCII.GetBytes("\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?1016l");
+            _tty.Write(disable, 0, disable.Length);
+            _tty.Flush();
 
             try
             {
-                System.Diagnostics.Process.Start("stty", "sane").WaitForExit();
+                System.Diagnostics.Process.Start("stty", "-F /dev/tty sane").WaitForExit();
             }
             catch { }
 
+            _tty.Dispose();
             _disposed = true;
         }
 
         /// <summary>
-        /// Background thread that continuously drains fd 0 in raw mode.
+        /// Background thread that continuously drains /dev/tty in raw mode.
         /// Blocking reads are fine here — the thread just waits for bytes and appends them.
+        /// A heartbeat is logged every 2 s so we can distinguish "no bytes arriving"
+        /// from "reader thread died."
         /// </summary>
         private void ReadLoop(object? tokenObj)
         {
@@ -83,17 +122,36 @@ namespace ModernPainter.Console.Reader.MousePositioning
             {
                 while (!ct.IsCancellationRequested && !_disposed)
                 {
-                    int bytesRead = _stdin.Read(_readBuffer, 0, _readBuffer.Length);
+                    int bytesRead = _tty.Read(_readBuffer, 0, _readBuffer.Length);
                     if (bytesRead <= 0)
                     {
                         Thread.Sleep(10);
+                        // Heartbeat: log every 2 s even when no bytes arrive,
+                        // so we can prove the reader thread is alive vs dead.
+                        if ((DateTime.Now - _lastHeartbeat).TotalSeconds >= 2)
+                        {
+                            _lastHeartbeat = DateTime.Now;
+                            System.IO.File.AppendAllText("/tmp/modernpainter_mouse_debug.log",
+                                $"[LinuxMouseDriver] heartbeat: alive, totalBytes={_totalBytesReceived}, buffer={_buffer.Count}\n");
+                        }
                         continue;
                     }
 
-                    string chunk = Encoding.ASCII.GetString(_readBuffer, 0, bytesRead);
                     lock (_bufferLock)
                     {
-                        _textBuffer.Append(chunk);
+                        _buffer.AddRange(new ArraySegment<byte>(_readBuffer, 0, bytesRead));
+                    }
+                    _totalBytesReceived += bytesRead;
+                    if (_totalBytesReceived == 1)
+                    {
+                        System.IO.File.AppendAllText("/tmp/modernpainter_mouse_debug.log",
+                            "[LinuxMouseDriver] FIRST byte received!\n");
+                    }
+                    if (_totalBytesReceived % 100 == 0)
+                    {
+                        var hex = BitConverter.ToString(_readBuffer, 0, bytesRead);
+                        System.IO.File.AppendAllText("/tmp/modernpainter_mouse_debug.log",
+                            $"[LinuxMouseDriver] {_totalBytesReceived} bytes received (last chunk: {hex})\n");
                     }
                 }
             }
@@ -102,109 +160,196 @@ namespace ModernPainter.Console.Reader.MousePositioning
         }
 
         /// <summary>
-        /// Scans the buffer left-to-right, parsing complete ANSI sequences and
-        /// preserving any incomplete/fragmented sequence tail so it can be
-        /// completed on the next call.
+        /// Parses mouse escape sequences from the front of the buffer, consuming
+        /// complete events and leaving any incomplete tail in place for the next call.
+        ///
+        /// Supports three protocols:
+        ///   • X10 (mode 1000): ESC [ M &lt;button+32&gt; &lt;col+32&gt; &lt;row+32&gt;
+        ///   • SGR  (mode 1006): ESC [ &lt;B;X;YM  or  ESC [ &lt;B;X;ym
+        ///   • SGR-Pixels (mode 1016): same as SGR but X/Y are device pixels;
+        ///     cell size is discovered via CSI 16 t (CSI 6 ; H ; W t).
         /// </summary>
-        private void ParseBuffer(string content)
+        private void ParseBuffer(List<byte> buffer)
         {
-            while (content.Length > 0)
+            int i = 0;
+            int parsedEvents = 0;
+
+            while (i < buffer.Count)
             {
-                int escIdx = content.IndexOf('\x1b');
+                // Must start with ESC (0x1B)
+                if (buffer[i] != 0x1B) { i++; continue; }
 
-                // No escape sequence starter found. Discard any non-escape junk and stop.
-                if (escIdx == -1)
-                {
-                    break;
-                }
+                // Need at least ESC [ (2 more bytes)
+                if (i + 1 >= buffer.Count) break;
 
-                // Discard any non-escape junk before the first escape character.
-                if (escIdx > 0)
+                if (buffer[i + 1] == '[') // CSI
                 {
-                    content = content.Substring(escIdx);
-                    continue;
-                }
-
-                // We only have a lone '\x1b' — could be the start of a sequence that
-                // hasn't arrived yet. Preserve it for the next tick.
-                if (content.Length < 2)
-                {
-                    Requeue(content);
-                    return;
-                }
-
-                if (content[1] == '[')
-                {
-                    // CSI sequence: find the terminator (ASCII 0x40–0x7E).
-                    int terminatorIdx = -1;
-                    for (int i = 2; i < content.Length; i++)
+                    // ── X10 protocol (mode 1000): ESC [ M + 3 raw bytes ──
+                    if (i + 2 < buffer.Count && buffer[i + 2] == 'M') // 0x4D
                     {
-                        char c = content[i];
-                        if (c >= 0x40 && c <= 0x7E)
+                        // ESC [ M b x y  —  b=button+32, x=col+32, y=row+32
+                        if (i + 5 < buffer.Count) // need 3 bytes after the M
                         {
-                            terminatorIdx = i;
+                            int button = buffer[i + 3] - 32;
+                            int col     = buffer[i + 4] - 32;
+                            int row     = buffer[i + 5] - 32;
+
+                            int charX = col;
+                            int virtualY = row * 2;
+                            // button & 32 set → release; button 0-3 → press;
+                            // button == 32 is motion (no button) — treat as pressed,
+                            // matching the SGR convention where motion (button==32)
+                            // keeps the fill rectangle active.
+                            bool isPressed = (button == 32) || ((button & 32) == 0);
+
+                            _currentState = (charX, virtualY, isPressed);
+                            parsedEvents++;
+                            i += 6; // consume ESC [ M + 3 bytes
+                            continue;
+                        }
+
+                        // Incomplete X10 event — preserve the tail for next tick.
+                        break;
+                    }
+
+                    // ── SGR protocol (mode 1006): ESC [ &lt;B;X;YM / ESC [ &lt;B;X;ym ──
+                    if (i + 2 < buffer.Count && buffer[i + 2] == '<') // 0x3C
+                    {
+                        // Find the terminator M (0x4D) or m (0x6D)
+                        int terminatorIdx = -1;
+                        for (int j = i + 3; j < buffer.Count; j++)
+                        {
+                            if (buffer[j] == 0x4D || buffer[j] == 0x6D) // M or m
+                            {
+                                terminatorIdx = j;
+                                break;
+                            }
+                        }
+
+                        if (terminatorIdx == -1)
+                        {
+                            // Incomplete SGR sequence — preserve the tail.
+                            break;
+                        }
+
+                        // Payload is the text between '&lt;' and the terminator.
+                        int payloadLen = terminatorIdx - (i + 3);
+                        string payload = Encoding.ASCII.GetString(
+                            buffer.ToArray(), i + 3, payloadLen);
+                        char action = (char)buffer[terminatorIdx]; // 'M' or 'm'
+
+                        string[] parts = payload.Split(';');
+                        if (parts.Length == 3 &&
+                            int.TryParse(parts[0], out int button) &&
+                            int.TryParse(parts[1], out int rawX) &&
+                            int.TryParse(parts[2], out int rawY))
+                        {
+                            // Terminal coordinates are 1-based; convert to 0-based.
+                            int zeroBasedX = rawX - 1;
+                            int zeroBasedY = rawY - 1;
+
+                            int charX;
+                            int virtualY;
+                            if (_cellHeightPx > 0 && _cellWidthPx > 0)
+                            {
+                                // 1016 (SGR-Pixels) active: zeroBasedX/Y are device pixels.
+                                int cellRow = zeroBasedY / _cellHeightPx;
+                                int offsetInCell = zeroBasedY % _cellHeightPx;
+                                int half = _cellHeightPx / 2;
+                                // top half of a cell → even virtualY (Background), bottom half → odd (Foreground),
+                                // matching the 2-virtual-pixels-per-cell convention used by ConsoleWriter.
+                                virtualY = cellRow * 2 + (offsetInCell >= half ? 1 : 0);
+                                charX = zeroBasedX / _cellWidthPx;
+                            }
+                            else
+                            {
+                                // Cell mode (1006): zeroBasedX/Y are character cells.
+                                charX = zeroBasedX;
+                                virtualY = zeroBasedY * 2;
+                            }
+
+                            // 'M' = press or drag; 'm' = release.
+                            // button 0 = left press, button 32 = motion (no button).
+                            bool isPressed = (action == 'M') && (button == 0 || button == 32);
+
+                            _currentState = (charX, virtualY, isPressed);
+                            parsedEvents++;
+                        }
+
+                        i = terminatorIdx + 1; // consume everything up to and including terminator
+                        continue;
+                    }
+
+                    // ── Dimension reply (CSI 16 t → CSI 6 ; H ; W t) ──
+                    if (i + 2 < buffer.Count && buffer[i + 2] == 0x36) // '6'
+                    {
+                        // Parse CSI 6 ; cellHeight ; cellWidth t
+                        int termT = -1;
+                        for (int j = i + 3; j < buffer.Count; j++)
+                        {
+                            if (buffer[j] == 0x74) // 't'
+                            {
+                                termT = j;
+                                break;
+                            }
+                        }
+                        if (termT == -1) break;
+                        string payload = Encoding.ASCII.GetString(
+                            buffer.ToArray(), i + 2, termT - (i + 2));
+                        string[] parts = payload.Split(';');
+                        if (parts.Length == 3 && parts[0] == "6" &&
+                            int.TryParse(parts[1], out int h) &&
+                            int.TryParse(parts[2], out int w) &&
+                            h > 0 && w > 0)
+                        {
+                            _cellHeightPx = h;
+                            _cellWidthPx = w;
+                        }
+                        i = termT + 1;
+                        continue;
+                    }
+
+                    // ── Other CSI sequence — skip to terminator or end ──
+                    int termIdx = -1;
+                    for (int j = i + 2; j < buffer.Count; j++)
+                    {
+                        if (buffer[j] >= 0x40 && buffer[j] <= 0x7E)
+                        {
+                            termIdx = j;
                             break;
                         }
                     }
 
-                    // No terminator found — sequence is incomplete. Preserve the whole tail.
-                    if (terminatorIdx == -1)
+                    if (termIdx == -1)
                     {
-                        Requeue(content);
-                        return;
+                        // Incomplete CSI — preserve the tail.
+                        break;
                     }
 
-                    string sequence = content.Substring(0, terminatorIdx + 1);
-                    ProcessSingleSequence(sequence);
-                    content = content.Substring(terminatorIdx + 1);
+                    i = termIdx + 1; // skip the whole unrecognized CSI
+                    continue;
                 }
                 else
                 {
-                    // Non-CSI escape (e.g. Alt+key). Discard it (2 bytes minimum).
-                    content = content.Substring(Math.Min(2, content.Length));
+                    // Non-CSI escape (e.g. Alt+key). Discard the leading ESC + one more byte.
+                    int skip = Math.Min(2, buffer.Count - i);
+                    i += skip;
+                    continue;
                 }
             }
-        }
 
-        /// <summary>
-        /// Pushes a partial sequence back into the shared buffer so it can be
-        /// completed when more bytes arrive on the next tick.
-        /// </summary>
-        private void Requeue(string tail)
-        {
-            lock (_bufferLock)
+            // Remove all bytes up to the current parse position in one shot.
+            // Anything from position i onward (incomplete tail) stays in the buffer.
+            if (i > 0)
             {
-                _textBuffer.Insert(0, tail);
+                buffer.RemoveRange(0, i);
             }
-        }
 
-        private void ProcessSingleSequence(string sequence)
-        {
-            // Mouse input SGR (1006): \x1b[<B;X;YM or \x1b[<B;X;ym
-            // With 1003 enabled, motion events are also reported in this format.
-            if (sequence.StartsWith("\x1b[<") && (sequence.EndsWith("M") || sequence.EndsWith("m")))
+            if (parsedEvents > 0)
             {
-                char action = sequence[sequence.Length - 1]; // 'M' = press/drag, 'm' = release
-                string payload = sequence.Substring(3, sequence.Length - 4); // strip "\x1b[<" and terminator
-                string[] parts = payload.Split(';');
-
-                if (parts.Length == 3 &&
-                    int.TryParse(parts[0], out int button) &&
-                    int.TryParse(parts[1], out int rawX) &&
-                    int.TryParse(parts[2], out int rawY))
-                {
-                    // 1006 SGR mode reports 1-based character coordinates; convert to 0-based.
-                    rawX -= 1;
-                    rawY -= 1;
-
-                    // 1006 character mode: rawX = character column, rawY = character row.
-                    // Our virtual coordinate system uses 2 virtual pixel rows per character row.
-                    int charX = rawX;
-                    int virtualY = rawY * 2;
-
-                    bool isPressed = (action == 'M') && (button == 0 || button == 32);
-                    _currentState = (charX, virtualY, isPressed);
-                }
+                var s = _currentState.Value;
+                System.IO.File.AppendAllText("/tmp/modernpainter_mouse_debug.log",
+                    $"[LinuxMouseDriver] parsed {parsedEvents} event(s), state=({s.charX},{s.virtualY},pressed={s.isPressed})\n");
             }
         }
     }
