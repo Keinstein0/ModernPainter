@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernPainter.Core", "Moder
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernPainter.Console", "Platforms\ModernPainter.Console\ModernPainter.Console.csproj", "{73F04C69-05C5-4DB1-8F8F-F9DFF0DA600D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Platforms", "Platforms", "{6409D1C2-8947-42EF-99FA-1C3C7A835FCD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModernPainter.Mobile", "Platforms\ModernPainter.Mobile\ModernPainter.Mobile.csproj", "{3DC31231-65F5-4EC9-A252-0A4255C88596}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,11 +25,18 @@ Global
 		{73F04C69-05C5-4DB1-8F8F-F9DFF0DA600D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{73F04C69-05C5-4DB1-8F8F-F9DFF0DA600D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73F04C69-05C5-4DB1-8F8F-F9DFF0DA600D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DC31231-65F5-4EC9-A252-0A4255C88596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DC31231-65F5-4EC9-A252-0A4255C88596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DC31231-65F5-4EC9-A252-0A4255C88596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DC31231-65F5-4EC9-A252-0A4255C88596}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B6D24B45-178E-48DE-B8F4-14B93438519A}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3DC31231-65F5-4EC9-A252-0A4255C88596} = {6409D1C2-8947-42EF-99FA-1C3C7A835FCD}
 	EndGlobalSection
 EndGlobal
